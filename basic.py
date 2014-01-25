@@ -1,4 +1,4 @@
-D = 128
+D = 512
 
 from vocab import Vocabulary
 
@@ -38,7 +38,12 @@ for input in input_sentence:
             if c>0.7:
                 print 'matched rule', LHS, RHS, c
                 
-            sp_part = vocab.parse('CATEGORY*%s')+vocab.parse('HEAD')*sp_lex
+                sp_part = vocab.parse('CATEGORY*%s'%LHS)+vocab.parse('HEAD')*sp_lex
+                
+                category = sp_part*vocab.parse('~CATEGORY')
+                if len(RHS)>1:
+                    sp_goal = sp_goal*vocab.parse('NEXT')+vocab.parse(RHS[1])
+                    break
             #if len(RHS)>0
               
             
