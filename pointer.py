@@ -18,6 +18,8 @@ class SemanticPointer:
     def normalize(self):
         nrm = np.linalg.norm(self.v)        
         if nrm>0: self.v/=nrm
+    def norm(self):
+        return np.linalg.norm(self.v)        
         
     def __str__(self):
         return str(self.v)
