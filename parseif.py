@@ -19,12 +19,12 @@ words = {
     'IN': 'iff'.split(),
     }
 
-parser = lcparser.LeftCornerParser(4096, rules, words)
+parser = lcparser.LeftCornerParser(1024, rules, words)
 
 #tree = parser.parse('press the button'.split(), verbose=True)
 #tree = parser.parse('iff see square'.split(), goal='S', verbose=True)
 tree = parser.parse('iff see square press button'.split())
-parser.print_tree(tree, threshold=0.05)
+parser.print_tree(tree, threshold=0.52)
 
 
     

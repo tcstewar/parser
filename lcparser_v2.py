@@ -75,13 +75,23 @@ class LeftCornerParser:
         self.label_list.extend(self.words.keys())
         for w in self.words.values():
             self.label_list.extend(w)
+        self.label_list = list(set(self.label_list))    
             
         print self.label_list    
         for w in self.label_list:
             self.vocab.parse(w)
             if w.lower()!=w:
-                self.vocab.parse('L_'+w)
-                self.vocab.parse('R_'+w)
+                print w
+                L = pointer.SemanticPointer(dimensions)
+                L.make_unitary()
+                self.vocab.add('L_'+w, L)
+                R = pointer.SemanticPointer(dimensions)
+                R.make_unitary()
+                self.vocab.add('R_'+w, R)
+
+
+                #self.vocab.parse('L_'+w)
+                #self.vocab.parse('R_'+w)
 
         # expand out the words list into the individual rules for each word
         for category, items in words.items():
@@ -105,8 +115,8 @@ class LeftCornerParser:
         else:
             return None
             
-    def text_label(self, s, threshold=0.7, show_match=False):
-        c = [s.compare(self.vocab.parse(word)) for word in self.label_list]
+    def text_label(self, s, premult, threshold, show_match=False):
+        c = [s.dot(premult*self.vocab.parse(word)) for word in self.label_list]
         if max(c)>threshold:
             text = self.label_list[c.index(max(c))]
             if show_match:
@@ -115,14 +125,15 @@ class LeftCornerParser:
         else:
             return None
             
-    def print_tree(self, s, depth=0, threshold=0.1):
+    def print_tree(self, s, depth=0, threshold=0.1, premult=None):
+        if premult is None: premult=self.vocab.parse('I')
         if depth>10: return  # stop if things get out of hand
-        x = self.text_label(s, threshold=threshold)
+        x = self.text_label(s, threshold=threshold, premult=premult)
         if x is not None:
-            print '  '*depth+self.text_label(s, threshold=threshold, show_match=True)
+            print '  '*depth+self.text_label(s, threshold=threshold, premult=premult, show_match=True)
             if x.lower()!=x:
-                self.print_tree(s*self.vocab.parse('~L_'+x), depth+1, threshold=threshold*1)
-                self.print_tree(s*self.vocab.parse('~R_'+x), depth+1, threshold=threshold*1)
+                self.print_tree(s, depth+1, threshold=threshold, premult=premult*self.vocab.parse('L_'+x))
+                self.print_tree(s, depth+1, threshold=threshold, premult=premult*self.vocab.parse('R_'+x))
             
                 
                 
@@ -172,5 +183,5 @@ if __name__ == '__main__':
     parser = LeftCornerParser(512, rules, words, verbose=True)
     
     tree = parser.parse('the dog ran'.split())
-    parser.print_tree(tree)
+    parser.print_tree(tree, threshold=0.07)
             
