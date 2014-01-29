@@ -18,7 +18,13 @@ class LeftCornerParser:
         self.label_list.extend(self.words.keys())
         for w in self.words.values():
             self.label_list.extend(w)
+            
         print self.label_list    
+        for w in self.label_list:
+            self.vocab.parse(w)
+            if w.lower()!=w:
+                self.vocab.parse('L_'+w)
+                self.vocab.parse('R_'+w)
         
         # expand out the words list into the individual rules for each word
         for category, items in words.items():
@@ -133,7 +139,7 @@ class LeftCornerParser:
                         if len(RHS)>1:
                             print 'pushing stack'
                             if sp_tree is not None:
-                                if verbose:
+                                if False and verbose:
                                     print 'old tree:', sp_tree.norm()
                                     self.print_tree(sp_tree, depth=2)
                                     print 'new part:', sp_lex.norm()
