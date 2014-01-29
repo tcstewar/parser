@@ -28,34 +28,29 @@ class LCRule(Rule):
     def apply(self):
         self.parser.sp_lex = self.LHS + self.L*self.parser.sp_lex
         if len(self.RHS)>1:
-            if self.parser.sp_tree is not None:
-                # TODO: can we get rid of this special case and just convolve regardless?
-                self.parser.sp_tree = self.parser.sp_tree*self.parser.NEXT + self.parser.sp_lex
-            else:
-                self.parser.sp_tree = self.parser.sp_lex
-            self.parser.sp_goal = self.parser.sp_goal*self.parser.NEXT+self.RHS[1]
+            self.parser.sp_tree = self.parser.sp_tree*self.parser.NEXT + self.parser.sp_lex
+            self.parser.sp_subgoal = self.parser.sp_subgoal*self.parser.NEXT+self.RHS[1]
             self.parser.finished_word = True
             
 class MergeRule(Rule):
     def utility(self):
-        return self.parser.sp_lex.dot(self.parser.sp_goal)
+        #if self.parser.sp_tree is None: return 0
+        if self.parser.rule_label(self.parser.sp_tree) is None: return 0
+        return self.parser.sp_lex.dot(self.parser.sp_subgoal)*1.2
     def label(self):
         return 'Merge lex into tree'    
     def apply(self):
-        if self.parser.sp_tree is None:
-            print 'could not merge'
-            self.parser.finished_word=True  
-        else:
-            type = self.parser.rule_label(self.parser.sp_tree)
-            R = self.parser.vocab.parse('R_'+type)
-            self.parser.sp_lex = self.parser.sp_tree + R*self.parser.sp_lex
+        type = self.parser.rule_label(self.parser.sp_tree)
+        R = self.parser.vocab.parse('R_'+type)
+        self.parser.sp_lex = self.parser.sp_tree + R*self.parser.sp_lex
+        
+        self.parser.sp_subgoal = self.parser.sp_subgoal*(~self.parser.NEXT)
+        self.parser.sp_tree = self.parser.sp_tree*(~self.parser.NEXT)
             
-            self.parser.sp_goal = self.parser.sp_goal*(~self.parser.NEXT)
-            self.parser.sp_tree = self.parser.sp_tree*(~self.parser.NEXT)
-                
-            type = self.parser.rule_label(self.parser.sp_tree)
-            if type is None:
-                self.parser.sp_tree = None
+        type = self.parser.rule_label(self.parser.sp_tree)
+        if type is None:
+            print 'resetting sp_tree'
+            self.parser.sp_tree = self.parser.vocab.parse('I*0')
     
 
 
@@ -99,9 +94,11 @@ class LeftCornerParser:
             self.match_rules.append(LCRule(self, LHS, RHS))
         
         self.sp_goal = self.vocab.parse(goal)
-        self.sp_tree = None
+        self.sp_subgoal = self.vocab.parse('I*0')
+        self.sp_tree = self.vocab.parse('I*0')
         self.sp_lex = None    
         self.finished_word = True
+        self.last_word = False
                    
                 
     def rule_label(self, s, threshold=0.7):
@@ -124,7 +121,7 @@ class LeftCornerParser:
         else:
             return None
             
-    def print_tree(self, s, depth=0, threshold=0.1, premult=None, show_match=False):
+    def print_tree(self, s, depth=0, threshold=0.5, premult=None, show_match=False):
         if depth>10: return  # stop if things get out of hand
         
         if premult is None: premult=self.vocab.parse('I')
@@ -150,6 +147,17 @@ class LeftCornerParser:
             index = u.index(max_u)
             if self.verbose: print 'RULE:',self.match_rules[index].label()
             self.match_rules[index].apply()
+        else:
+            print 'No rule!'
+            self.finished_word = True 
+        if False and self.verbose:
+            print 'sp_lex'
+            self.print_tree(self.sp_lex, depth=2)
+            print 'sp_tree'
+            if self.sp_tree is not None:
+                self.print_tree(self.sp_tree, depth=2)
+            print 'sp_subgoal'
+            print '    ',self.rule_label(self.sp_subgoal)
                 
     
     def parse_word(self, word):
@@ -160,7 +168,8 @@ class LeftCornerParser:
 
     
     def parse(self, sentence):
-        for word in sentence:
+        self.last_word = False
+        for i, word in enumerate(sentence):
             self.parse_word(word)
         return self.sp_lex    
             
@@ -184,7 +193,7 @@ if __name__ == '__main__':
         'V': 'ran saw'.split(),
         }
 
-    parser = LeftCornerParser(512, rules, words, verbose=True)
+    parser = LeftCornerParser(1024, rules, words, verbose=True)
     
     tree = parser.parse('the dog ran'.split())
     parser.print_tree(tree, threshold=0.5)
