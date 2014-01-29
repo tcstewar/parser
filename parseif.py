@@ -1,7 +1,7 @@
 import numpy as np
 np.random.seed(4)
 
-import lcparser
+import lcparser_v2 as lcparser
 
 rules = [
     ('S', ['SBAR', 'VP']),
@@ -23,8 +23,8 @@ parser = lcparser.LeftCornerParser(4096, rules, words)
 
 #tree = parser.parse('press the button'.split(), verbose=True)
 #tree = parser.parse('iff see square'.split(), goal='S', verbose=True)
-tree = parser.parse('iff see square press button'.split(), verbose=True)
-parser.print_tree(tree)
+tree = parser.parse('iff see square press button'.split())
+parser.print_tree(tree, threshold=0.05)
 
 
     
