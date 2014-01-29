@@ -38,7 +38,7 @@ class LCRule(Rule):
             
 class MergeRule(Rule):
     def utility(self):
-        return self.parser.sp_lex.dot(self.parser.sp_goal)*2
+        return self.parser.sp_lex.dot(self.parser.sp_goal)
     def label(self):
         return 'Merge lex into tree'    
     def apply(self):
@@ -75,13 +75,12 @@ class LeftCornerParser:
         self.label_list.extend(self.words.keys())
         for w in self.words.values():
             self.label_list.extend(w)
-        self.label_list = list(set(self.label_list))    
+        self.label_list = list(set(self.label_list))   # only keep unique entries
             
-        print self.label_list    
         for w in self.label_list:
             self.vocab.parse(w)
             if w.lower()!=w:
-                print w
+                # make the Ls and Rs unitary
                 L = pointer.SemanticPointer(dimensions)
                 L.make_unitary()
                 self.vocab.add('L_'+w, L)
@@ -89,9 +88,6 @@ class LeftCornerParser:
                 R.make_unitary()
                 self.vocab.add('R_'+w, R)
 
-
-                #self.vocab.parse('L_'+w)
-                #self.vocab.parse('R_'+w)
 
         # expand out the words list into the individual rules for each word
         for category, items in words.items():
@@ -120,31 +116,39 @@ class LeftCornerParser:
         if max(c)>threshold:
             text = self.label_list[c.index(max(c))]
             if show_match:
-                text+=' (%0.3f)'%max(c)
+                # print dot product and probability of correct cleanup with
+                #  a vocabulary size of 10000
+                c2 = s.compare(premult*self.vocab.parse(text))  #needed for prob
+                text+=' (%0.3f  %3d%%)'%(max(c), self.vocab.prob_cleanup(c2, 10000)*100)
             return text
         else:
             return None
             
-    def print_tree(self, s, depth=0, threshold=0.1, premult=None):
-        if premult is None: premult=self.vocab.parse('I')
+    def print_tree(self, s, depth=0, threshold=0.1, premult=None, show_match=False):
         if depth>10: return  # stop if things get out of hand
+        
+        if premult is None: premult=self.vocab.parse('I')
         x = self.text_label(s, threshold=threshold, premult=premult)
         if x is not None:
-            print '  '*depth+self.text_label(s, threshold=threshold, premult=premult, show_match=True)
+            print '  '*depth+self.text_label(s, threshold=threshold, 
+                                     premult=premult, show_match=show_match)
             if x.lower()!=x:
-                self.print_tree(s, depth+1, threshold=threshold, premult=premult*self.vocab.parse('L_'+x))
-                self.print_tree(s, depth+1, threshold=threshold, premult=premult*self.vocab.parse('R_'+x))
+                self.print_tree(s, depth+1, threshold=threshold, 
+                                     premult=premult*self.vocab.parse('L_'+x), 
+                                     show_match=show_match)
+                self.print_tree(s, depth+1, threshold=threshold, 
+                                     premult=premult*self.vocab.parse('R_'+x), 
+                                     show_match=show_match)
             
                 
                 
     def parse_step(self):
         u = [r.utility() for r in self.match_rules]
-        print ' '.join(['%+4.1f'%uu for uu in u])
+        if self.verbose: print 'utility:',' '.join(['%3d'%int(max(uu,0)*10) for uu in u])
         max_u = max(u)
         if max_u>0.7:
             index = u.index(max_u)
-            if self.verbose:
-                print 'RULE:',self.match_rules[index].label()
+            if self.verbose: print 'RULE:',self.match_rules[index].label()
             self.match_rules[index].apply()
                 
     
@@ -183,5 +187,5 @@ if __name__ == '__main__':
     parser = LeftCornerParser(512, rules, words, verbose=True)
     
     tree = parser.parse('the dog ran'.split())
-    parser.print_tree(tree, threshold=0.07)
+    parser.print_tree(tree, threshold=0.5)
             
