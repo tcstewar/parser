@@ -42,7 +42,7 @@ class MergeRule(Rule):
     def utility(self):
         correct_tree = self.match.dot(self.parser.sp_tree)
         correct_lex = self.parser.sp_lex.dot(self.parser.sp_subgoal)
-        return correct_tree*correct_lex
+        return correct_tree*correct_lex*1.2   # give priority to merge rules
     def label(self):
         return 'Merge lex into tree: lex=tree+R_%s*lex'%(self.tree_type)    
     def apply(self):
@@ -58,9 +58,11 @@ class MergeRule(Rule):
 
 
 class LeftCornerParser:
-    def __init__(self, dimensions, rules, words, goal='S', verbose=False):
+    def __init__(self, dimensions, rules, words, goal='S', verbose=False, noise=0):
         self.vocab = vocab.Vocabulary(dimensions, max_similarity=0.1)
         self.verbose = verbose
+        self.noise = noise
+        self.dimensions = dimensions
         
         self.NEXT = pointer.SemanticPointer(dimensions)
         self.NEXT.make_unitary()
@@ -148,6 +150,11 @@ class LeftCornerParser:
                 
                 
     def parse_step(self):
+        if self.noise is not None:
+            self.sp_tree = self.sp_tree + pointer.SemanticPointer(self.dimensions)*self.noise
+            self.sp_lex = self.sp_lex + pointer.SemanticPointer(self.dimensions)*self.noise
+            self.sp_subgoal = self.sp_subgoal + pointer.SemanticPointer(self.dimensions)*self.noise
+    
         u = [r.utility() for r in self.match_rules]
         if self.verbose: print 'utility:',' '.join(['%3d'%int(max(uu,0)*10) for uu in u])
         max_u = max(u)
