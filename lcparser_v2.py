@@ -34,12 +34,13 @@ class LCRule(Rule):
             
 class MergeRule(Rule):
     def utility(self):
-        #if self.parser.sp_tree is None: return 0
+        #TODO: This if statement is ugly, but doable
         if self.parser.rule_label(self.parser.sp_tree) is None: return 0
         return self.parser.sp_lex.dot(self.parser.sp_subgoal)*1.2
     def label(self):
         return 'Merge lex into tree'    
     def apply(self):
+        # TODO: split this one rule into separate rules for each type
         type = self.parser.rule_label(self.parser.sp_tree)
         R = self.parser.vocab.parse('R_'+type)
         self.parser.sp_lex = self.parser.sp_tree + R*self.parser.sp_lex
@@ -50,6 +51,7 @@ class MergeRule(Rule):
         type = self.parser.rule_label(self.parser.sp_tree)
         if type is None:
             print 'resetting sp_tree'
+            #TODO: it'd be nice to get rid of this
             self.parser.sp_tree = self.parser.vocab.parse('I*0')
     
 
