@@ -33,17 +33,18 @@ class LCRule(Rule):
             self.parser.finished_word = True
             
 class MergeRule(Rule):
+    def __init__(self, parser, tree_type):
+        Rule.__init__(self, parser)
+        self.match = parser.vocab.parse(tree_type)
+        self.R = parser.vocab.parse('R_'+tree_type)
     def utility(self):
-        #TODO: This if statement is ugly, but doable
-        if self.parser.rule_label(self.parser.sp_tree) is None: return 0
-        return self.parser.sp_lex.dot(self.parser.sp_subgoal)*1.2
+        correct_tree = self.match.dot(self.parser.sp_tree)
+        correct_lex = self.parser.sp_lex.dot(self.parser.sp_subgoal)
+        return correct_tree*correct_lex
     def label(self):
         return 'Merge lex into tree'    
     def apply(self):
-        # TODO: split this one rule into separate rules for each type
-        type = self.parser.rule_label(self.parser.sp_tree)
-        R = self.parser.vocab.parse('R_'+type)
-        self.parser.sp_lex = self.parser.sp_tree + R*self.parser.sp_lex
+        self.parser.sp_lex = self.parser.sp_tree + self.R*self.parser.sp_lex
         
         self.parser.sp_subgoal = self.parser.sp_subgoal*(~self.parser.NEXT)
         self.parser.sp_tree = self.parser.sp_tree*(~self.parser.NEXT)
@@ -91,7 +92,12 @@ class LeftCornerParser:
             for item in items:
                 self.rules.append((category, [item]))
                 
-        self.match_rules = [MergeRule(self)]
+        self.match_rules = []
+        merged = []
+        for (LHS, RHS) in self.rules:
+            if len(RHS)>1 and LHS not in merged:
+                self.match_rules.append(MergeRule(self, LHS))
+                merged.append(LHS)
         for (LHS, RHS) in self.rules:
             self.match_rules.append(LCRule(self, LHS, RHS))
         
