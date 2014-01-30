@@ -1,5 +1,5 @@
 import numpy as np
-np.random.seed(4)
+np.random.seed(6)
 
 import lcparser_v2 as lcparser
 

@@ -29,12 +29,14 @@ class LCRule(Rule):
         self.parser.sp_lex = self.LHS + self.L*self.parser.sp_lex
         if len(self.RHS)>1:
             self.parser.sp_tree = self.parser.sp_tree*self.parser.NEXT + self.parser.sp_lex
+            self.parser.sp_lex = self.parser.sp_lex*0 
             self.parser.sp_subgoal = self.parser.sp_subgoal*self.parser.NEXT+self.RHS[1]
             self.parser.finished_word = True
             
 class MergeRule(Rule):
     def __init__(self, parser, tree_type):
         Rule.__init__(self, parser)
+        self.tree_type = tree_type
         self.match = parser.vocab.parse(tree_type)
         self.R = parser.vocab.parse('R_'+tree_type)
     def utility(self):
@@ -42,18 +44,16 @@ class MergeRule(Rule):
         correct_lex = self.parser.sp_lex.dot(self.parser.sp_subgoal)
         return correct_tree*correct_lex
     def label(self):
-        return 'Merge lex into tree'    
+        return 'Merge lex into tree: lex=tree+R_%s*lex'%(self.tree_type)    
     def apply(self):
         self.parser.sp_lex = self.parser.sp_tree + self.R*self.parser.sp_lex
         
-        self.parser.sp_subgoal = self.parser.sp_subgoal*(~self.parser.NEXT)
-        self.parser.sp_tree = self.parser.sp_tree*(~self.parser.NEXT)
+        self.parser.sp_subgoal = (self.parser.sp_subgoal)*(~self.parser.NEXT)
+        
+        # Need to subtract this off again when popping the stack;
+        #   otherwise it shows up again when something else is pushed!
+        self.parser.sp_tree = (self.parser.sp_tree-self.match)*(~self.parser.NEXT)
             
-        type = self.parser.rule_label(self.parser.sp_tree)
-        if type is None:
-            print 'resetting sp_tree'
-            #TODO: it'd be nice to get rid of this
-            self.parser.sp_tree = self.parser.vocab.parse('I*0')
     
 
 
