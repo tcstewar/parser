@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-np.random.seed(6)
+np.random.seed(4)
 
 import lcparser_v2 as lcparser
 
@@ -20,7 +20,7 @@ words = {
     'IN': 'iff'.split(),
     }
 
-parser = lcparser.LeftCornerParser(1024, rules, words, verbose=True)
+parser = lcparser.LeftCornerParser(2048, rules, words, verbose=True)
 # parser2 = lcparser.LeftCornerParser(1024, rules, words, verbose=True)
 # parser2.vocab = copy.deepcopy(parser.vocab)
 
@@ -28,6 +28,7 @@ parser = lcparser.LeftCornerParser(1024, rules, words, verbose=True)
 #tree = parser.parse('iff see square'.split(), goal='S')
 tree2 = parser.parse('iff see circle press switch'.split())
 parser.print_tree(tree2, threshold=0.52, show_match=True)
+parser.reset()
 
 tree = parser.parse('iff see square press button'.split())
 parser.print_tree(tree, threshold=0.52, show_match=True)

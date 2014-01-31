@@ -103,14 +103,24 @@ class LeftCornerParser:
         for (LHS, RHS) in self.rules:
             self.match_rules.append(LCRule(self, LHS, RHS))
         
+        self.goal = goal
+
         self.sp_goal = self.vocab.parse(goal)
         self.sp_subgoal = self.vocab.parse('I*0')
         self.sp_tree = self.vocab.parse('I*0')
         self.sp_lex = None    
         self.finished_word = True
         self.last_word = False
-                   
-                
+    
+
+    def reset(self):
+        self.sp_goal = self.vocab.parse(self.goal)
+        self.sp_subgoal = self.vocab.parse('I*0')
+        self.sp_tree = self.vocab.parse('I*0')
+        self.sp_lex = None    
+        self.finished_word = True
+        self.last_word = False
+                    
     def rule_label(self, s, threshold=0.7):
         c = [s.dot(self.vocab.parse(rule[0])) for rule in self.rules]
         if max(c)>threshold:
